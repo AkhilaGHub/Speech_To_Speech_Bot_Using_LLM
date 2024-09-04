@@ -8,9 +8,9 @@ This project is a Django-based application that implements a speech-to-speech bo
 
 - 🎙 **Speech Recognition:** Convert your spoken words into text using advanced speech recognition technology.
 - 🤖 **Intelligent Responses:** Get insightful and contextually relevant responses powered by OpenAI’s GPT-3.5-turbo.
-- 🔊 **Text-to-Speech:** Hear the responses back with clear and natural-sounding speech synthesis.
+- 🔊 **Text-to-Speech:** Hear the responses back with speech synthesis.
 - 🌐 **Web Interface:** Interact with the bot through an easy-to-use web interface built with Django.
-- 🔒 **Secure Communication:** Ensure your interactions are secure and private.
+- 🔒 **Secure and Fast Communication:** Ensure your interactions are secure and fast.
 
 
  *Clone the Repository*
