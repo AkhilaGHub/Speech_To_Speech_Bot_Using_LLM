@@ -1,0 +1,167 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Speech-to-Speech Bot</title>
+    <link rel="stylesheet" href="{% static 'css/styles.css' %}">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f7f7f7;
+            color: #333;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+        }
+        h1 {
+            color: #4CAF50;
+        }
+        .container {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        .chatbox {
+            width: 100%;
+            max-width: 500px;
+            height: 300px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            overflow-y: auto;
+            padding: 10px;
+            margin-bottom: 20px;
+            background-color: #e9e9e9;
+        }
+        .input-container {
+            display: flex;
+            justify-content: space-between;
+        }
+        input[type="text"] {
+            width: 100%;
+            padding: 10px;
+            border-radius: 8px;
+            border: 1px solid #ccc;
+            margin-right: 10px;
+            font-size: 16px;
+        }
+        button {
+            padding: 10px 20px;
+            border-radius: 8px;
+            border: none;
+            background-color: #4CAF50;
+            color: white;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+    </style>
+</head>
+<body>
+    <h1>Speech-to-Speech Bot</h1>
+    <div class="container">
+        <div class="chatbox" id="chatbox">
+            <!-- Actual Bot Communication happens here -->
+        </div>
+        <div class="input-container">
+            <input type="text" id="user-input" placeholder="Say something...">
+            <button onclick="sendAudio()">Send</button>
+            <button onclick="startRecording()">Record</button>
+            <button onclick="stopRecording()">Stop</button>
+        </div>
+    </div>
+
+    <script>
+        let mediaRecorder;
+        let audioChunks = [];
+
+        async function startRecording() {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            mediaRecorder = new MediaRecorder(stream);
+
+            mediaRecorder.ondataavailable = event => {
+                audioChunks.push(event.data);
+            };
+
+            mediaRecorder.onstop = async () => {
+                const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
+                const formData = new FormData();
+                formData.append('audio', audioBlob, 'recording.wav');
+
+                fetch("/recognize_audio/", {
+                    method: "POST",
+                    body: formData,
+                    headers: {
+                        "X-CSRFToken": getCookie('csrftoken')
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    let botMessage = document.createElement('p');
+                    botMessage.textContent = "Bot: " + data.response;
+                    document.getElementById('chatbox').appendChild(botMessage);
+                });
+            };
+
+            mediaRecorder.start();
+        }
+
+        function stopRecording() {
+            mediaRecorder.stop();
+        }
+
+       function sendMessage() {
+            let userInput = document.getElementById('user-input').value;
+            let chatbox = document.getElementById('chatbox');
+
+            let userMessage = document.createElement('p');
+            userMessage.textContent = "You: " + userInput;
+            chatbox.appendChild(userMessage);
+
+            document.getElementById('user-input').value = '';
+
+            fetch("/recognize/", {
+                method: "POST",
+                body: JSON.stringify({ message: userInput }),
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-CSRFToken": getCookie('csrftoken')
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                let botMessage = document.createElement('p');
+                botMessage.textContent = "Bot: " + data.response;
+                chatbox.appendChild(botMessage);
+                chatbox.scrollTop = chatbox.scrollHeight;
+            })
+            .catch(error => {
+                let errorMessage = document.createElement('p');
+                errorMessage.textContent = "Error: Could not get a response from the server.";
+                chatbox.appendChild(errorMessage);
+            });
+        }
+
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+    </script>
+</body>
+</html>
